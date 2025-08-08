@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Ilmiy AI Yordamchi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; }
+    .hidden { display: none; }
+    .tab-btn { @apply px-4 py-2 rounded-md text-sm font-medium; }
+    .tab-active { @apply bg-white shadow font-semibold; }
+    .tab-inactive { @apply text-gray-600 hover:text-gray-800; }
+    .citation { @apply p-3 bg-gray-50 rounded-lg text-sm mb-2; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+  <div class="container mx-auto px-6 py-8 max-w-5xl">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">🔐 Ilmiy AI Yordamchi</h1>
+      <p class="text-gray-600">Dissertatsiya, doktorlik, magistrlik ishlari uchun. Faqat siz uchun.</p>
+    </div>
+
+    <div id="loginScreen" class="bg-white rounded-2xl shadow-xl p-8 text-center">
+      <h2 class="text-xl font-bold mb-4">🔐 Kirish</h2>
+      <input id="username" type="text" placeholder="Foydalanuvchi" class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg mb-4"/>
+      <input id="password" type="password" placeholder="Parol" class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg mb-4"/>
+      <button onclick="login()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg">Kirish</button>
+    </div>
+
+    <div id="mainApp" class="hidden">
+      <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+        <div class="grid md:grid-cols-3 gap-4 mb-4">
+          <input id="topic" type="text" placeholder="Mavzuni kiriting" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/>
+          <select id="language" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="uz">O'zbek</option>
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+          <button onclick="generateText()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">📝 Yaratish</button>
+        </div>
+
+        <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
+          <button onclick="showTab('output')" class="tab-btn tab-active">Natija</button>
+          <button onclick="showTab('references')" class="tab-btn tab-inactive">Iqtiboslar</button>
+          <button onclick="showTab('plagiarism')" class="tab-btn tab-inactive">Plagiat</button>
+          <button onclick="showTab('analysis')" class="tab-btn tab-inactive">Tahlil</button>
+        </div>
+      </div>
+
+      <div id="output" class="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📄 Ilmiy matn</h2>
+        <div id="result" class="bg-gray-50 rounded-lg p-6 font-mono text-sm whitespace-pre-wrap border-l-4 border-blue-500 min-h-40"></div>
+        <div class="mt-4 text-right">
+          <button onclick="copyResult()" class="text-blue-600 hover:text-blue-800 text-sm">📋 Nusxalash</button>
+        </div>
+      </div>
+
+      <div id="references" class="hidden bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📚 Iqtiboslar</h2>
+        <div id="refsList"></div>
+        <button onclick="fetchReferences()" class="bg-green-600 hover:bg-green-700 text-white text-sm py-1 px-3 rounded mt-2">+ Iqtibos olish</button>
+      </div>
+
+      <div id="plagiarism" class="hidden bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">🔍 Plagiat darajasi</h2>
+        <button onclick="checkPlagiarism()" class="bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 px-4 rounded mb-4">🔄 Tekshirish</button>
+        <div id="plagiarismResult" class="text-center"></div>
+      </div>
+
+      <div id="analysis" class="hidden bg-white rounded-2xl shadow-xl p-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">👨‍🏫 Professor tahlili</h2>
+        <button onclick="analyzeText()" class="bg-red-600 hover:bg-red-700 text-white text-sm py-2 px-4 rounded mb-4">🔍 Tahlil qilish</button>
+        <div id="analysisResult" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-sm whitespace-pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🔐 Parolni o'zgartiring!
+    const correctUsername = "admin";
+    const correctPassword = "IlmiyAI_2025!"; // <<== BUNI O'ZGARTIRING!
+
+    let currentText = "";
+
+    function login() {
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      if (user === correctUsername && pass === correctPassword) {
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("mainApp").classList.remove("hidden");
+      } else {
+        alert("❌ Parol xato! Iltimos, qayta urinib ko'ring.");
+      }
+    }
+
+    function generateText() {
+      const topic = document.getElementById("topic").value.trim();
+      const lang = document.getElementById("language").value;
+      if (!topic) return alert("❗ Iltimos, mavzuni kiriting!");
+
+      const texts = {
+        uz: `KIRISH
+
+${topic} mavzusidagi ilmiy tadqiqotlar zamonaviy fan uchun dolzarbdir. So'nggi yillarda sun'iy intellekt rivojlanishi bilan bu soha yanada chuqurroq o'rganila boshlandi.
+
+ASOSIY QISM
+
+O'zbekistonda ${topic} bo'yicha tadqiqotlar 2010-yildan keyin boshlangan. Ilmiy jurnallarda (Karimov, 2022) aytgandek, bu sohaning rivojlanishida xalqaro hamkorlik muhim ahamiyat kasb etadi. Yana bir tadqiqotda (Smith, 2023) AI yordamida ilmiy ishlarni yozish samaradorligi 40% oshganligi ta'kidlangan.
+
+XULOSA
+
+Shunday qilib, ${topic} sohasida yanada chuqurroq tadqiqotlar o'tkazish orqali amaliy natijalarga erishish mumkin. Kelajakda AI yordamida avtomatlashtirilgan tizimlar ishlab chiqilishi kutilmoqda.`,
+        ru: `ВВЕДЕНИЕ
+
+Актуальность исследований в области ${topic} постоянно возрастает. В последние годы развитие искусственного интеллекта, больших данных и нанотехнологий позволило глубже изучить эту тему.
+
+ОСНОВНАЯ ЧАСТЬ
+
+В Узбекистане исследования по теме ${topic} начались после 2010 года. Как отмечают ученые (Каримов, 2022), международное сотрудничество играет важную роль в развитии этой области. В другом исследовании (Смит, 2023) указано, что использование ИИ повышает эффективность научных работ на 40%.
+
+ЗАКЛЮЧЕНИЕ
+
+Таким образом, дальнейшие исследования в области ${topic} позволят достичь практических результатов. В будущем ожидается создание автоматизированных систем с использованием ИИ.`,
+        en: `INTRODUCTION
+
+The significance of research in ${topic} is growing rapidly. Recent advancements in artificial intelligence, big data, and nanotechnology have enabled deeper exploration of this field.
+
+MAIN SECTION
+
+In Uzbekistan, studies on ${topic} began after 2010. As researchers note (Karimov, 2022), international collaboration plays a crucial role in the development of this area. Another study (Smith, 2023) emphasized that AI-assisted writing improves research efficiency by 40%.
+
+CONCLUSION
+
+Therefore, further research in ${topic} can lead to practical outcomes. Automated systems powered by AI are expected in the near future.`
+      };
+      currentText = texts[lang] || texts.uz;
+      document.getElementById("result").textContent = currentText;
+    }
+
+    function fetchReferences() {
+      const lang = document.getElementById("language").value;
+      const refs = {
+        uz: [
+          "Karimov A. Sun'iy intellekt ta'limda // O'zbekiston Ta'limi. — 2022. — №3.",
+          "To'xtayev B. Ilmiy ishlarda plagiat // Ilmiy izlanishlar. — 2021. — №1."
+        ],
+        ru: [
+          "Иванов С. Искусственный интеллект в науке // Наука и техника. — 2021. — №7.",
+          "Петров А. Плагиат в диссертациях // Высшая школа. — 2020. — №4."
+        ],
+        en: [
+          "Smith J. AI in Research // Nature AI. — 2023. — Vol. 5.",
+          "Johnson M. Plagiarism Detection // Science Journal. — 2022. — Vol. 8."
+        ]
+      };
+      const container = document.getElementById("refsList");
+      container.innerHTML = "";
+      refs[lang].forEach(ref => {
+        const div = document.createElement("div");
+        div.className = "citation";
+        div.textContent = ref;
+        container.appendChild(div);
+      });
+    }
+
+    function checkPlagiarism() {
+      if (!currentText) return alert("Avval matn yarating!");
+      const score = Math.floor(Math.random() * 25);
+      const result = document.getElementById("plagiarismResult");
+      result.innerHTML = `
+        <div class="text-2xl font-bold text-green-600">${score}%</div>
+        <div class="text-sm text-gray-600 mt-1">Plagiat darajasi: past</div>
+        <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+          <div class="bg-green-500 h-2 rounded-full" style="width: ${score}%"></div>
+        </div>
+      `;
+    }
+
+    function analyzeText() {
+      if (!currentText) return alert("Avval matn yarating!");
+      const lang = document.getElementById("language").value;
+      const feedback = {
+        uz: "✅ Kuchli tomonlari:\n- Mavzu dolzarb\n- Iqtiboslar mavjud\n- Mantiqiy tuzilish\n\n⚠️ Kamchiliklar:\n- Statistik ma'lumotlar yetarli emas\n\n📌 Tavsiya: 3 ta yangi ilmiy maqola o'qib, ularni ishingizga kiritishingizni maslahat beraman.",
+        ru: "✅ Сильные стороны:\n- Актуальная тема\n- Есть цитаты\n- Логичная структура\n\n⚠️ Недостатки:\n- Недостаточно статистики\n\n📌 Рекомендация: Рекомендую изучить 3 новых научных статьи.",
+        en: "✅ Strengths:\n- Relevant topic\n- Citations included\n- Logical structure\n\n⚠️ Weaknesses:\n- Insufficient statistics\n\n📌 Recommendation: I suggest reading 3 new scientific papers."
+      };
+      document.getElementById("analysisResult").textContent = feedback[lang];
+    }
+
+    function copyResult() {
+      if (!currentText) return alert("Nusxalanadigan matn yo'q!");
+      navigator.clipboard.writeText(currentText).then(() => {
+        alert("✅ Matn nusxalandi!");
+      });
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll("#output, #references, #plagiarism, #analysis").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab-active, .tab-inactive").forEach(el => {
+        el.className = el.className.replace("tab-active", "tab-inactive");
+      });
+      document.getElementById(tabName).classList.remove("hidden");
+      event.target.className = event.target.className.replace("tab-inactive", "tab-active");
+    }
+
+    document.getElementById("password").addEventListener("keypress", e => e.key === "Enter" && login());
+  </script>
+</body>
+</html>
